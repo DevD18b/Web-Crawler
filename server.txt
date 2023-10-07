@@ -1,0 +1,220 @@
+package com.company;
+
+import com.company.entities.CrawlerResults;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class serverInJava {
+    static List<CrawlerResults> resultsList;
+
+    //static Set<String> resultsList;
+    public static void main(String[] args) throws Exception {
+
+        //  resultsList = new HashSet<CrawlerResults>();
+        resultsList = new ArrayList<>();
+        try (ServerSocket serverSocket = new ServerSocket(8000)) {
+            System.out.println("Server started.\n Listening to the messages.");
+            while (true) {
+                try (
+                        Socket client = serverSocket.accept()) {
+                    System.out.println("Debug : get messages from the server : " + client.toString());
+                    InputStreamReader isr = new InputStreamReader(client.getInputStream());
+                    BufferedReader bfr = new BufferedReader(isr);
+                    StringBuilder request = new StringBuilder();
+                    String line;
+                    line = bfr.readLine();
+                    String referer = null;
+                    while (!line.isBlank()) {
+                        if (line.toLowerCase().contains("referer:")) {
+                            referer = line;
+                        }
+                        request.append(line).append("\r\n");
+                        line = bfr.readLine();
+                    }
+                    System.out.println("The value of ref is : " + referer);
+                    System.out.println("--Request--");
+                    System.out.println(request);
+
+                    String firstLine = request.toString().split("\n")[0];
+                    String resource = firstLine.split(" ")[1];
+                    //  System.out.println(resource +  " ");
+
+                    OutputStream outputStream = client.getOutputStream();
+                    try {
+                        outputStream = client.getOutputStream();
+                        if (resource.equals("/index.html")) {
+
+                            File index = new File("index.html");
+
+                            PrintWriter printWriter = new PrintWriter(client.getOutputStream());// Make a writer for the output stream to
+                            // the client
+                            BufferedReader reader = new BufferedReader(new FileReader(index));// grab a file and put it into the buffer
+                            // print HTTP headers
+
+                            printWriter.println("HTTP/1.1 200 OK");
+                            printWriter.println("Content-Type: text/html");
+                            printWriter.println("Content-Length: " + index.length());
+
+                            printWriter.println("\r\n");
+                            String line1 = reader.readLine();
+
+
+
+
+                            while (line1 != null)// repeat till the file is read
+                            {
+                                printWriter.println(line1);// print current line
+                                line1 = reader.readLine();// read next line
+                            }
+
+
+                            reader.close();// close the reader
+                            printWriter.close();
+                        }
+                        else {
+                            outputStream.write(("HTTP/1.1 200 OK\r\n").getBytes(StandardCharsets.UTF_8));
+                            outputStream.write(("\r\n").getBytes(StandardCharsets.UTF_8));
+
+                            try {
+
+                                assert referer != null;
+                                URL url = new URL(referer.split("Referer: ")[1]);
+                                String query = url.getQuery();
+                                if (query != null) {
+                                    if (query.contains("search="))
+                                        query = (URLDecoder.decode(query.split("search=")[1], StandardCharsets.UTF_8));
+
+                                    resultsList = search.searchInput(query);
+
+//
+                                    System.out.println("The query is : " + query);
+                                    //  CrawlerResults cr = new CrawlerResults(query);
+                                    String ans = query;
+
+                                    try {
+
+                                        InputStreamReader isr1 = new InputStreamReader(System.in);
+
+                                        // Create an instance of OutputStreamWriter class, it is used to write text to command line console.
+                                        OutputStreamWriter osw = new OutputStreamWriter(System.out);
+
+
+                                        // Create a BufferedReader object and use this object to connect to the system.in(command line console) to get user input text.
+                                        BufferedReader br = new BufferedReader(isr1);
+
+                                        //String line1 = br.readLine();
+                                        // Create a BufferedWriter object to write text to system.out.
+                                        BufferedWriter bw = new BufferedWriter(osw);
+                                        FileWriter fw = new FileWriter("out.txt");
+                                        PrintWriter pw = new PrintWriter(fw);
+                                        StringBuilder op = new StringBuilder();
+                                        if (isValid(url.toString())) {
+                                            for (CrawlerResults cr : resultsList) {
+
+                                                op.append(cr.getTitle()).append("\n").append(cr.getLink()).append(" ");
+                                            }
+                                            bw.append(op.toString());
+                                            bw.flush();
+                                            pw.write(op.toString() + " ");
+                                            pw.close();
+                                        }
+//                                        try {
+//                                            File resultantFile = new File("result.html");
+//                                            PrintWriter printWriter = new PrintWriter(client.getOutputStream());
+//                                            BufferedReader reader = new BufferedReader(new FileReader("result.html"));
+//                                            printWriter.println("HTTP/1.1 200 OK");
+//                                            printWriter.println("Content-Type: text/html");
+//                                            printWriter.println("Content-Length: " + resultantFile.length());
+//                                            printWriter.println("\r\n");
+//
+//                                            String readingResult = reader.readLine();
+//                                            while (readingResult != null) {
+//                                                printWriter.println(readingResult);
+//                                                readingResult = reader.readLine();
+//                                            }
+//                                            reader.close();
+//                                            printWriter.close();
+//
+//                                        } catch (IOException e) {
+//                                            e.printStackTrace();
+//                                        }
+                                    }catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+
+
+                                }
+
+                            } catch (SQLException | IOException e) {
+                                e.printStackTrace();
+                            }
+                            outputStream.flush();
+
+
+                        }
+                        outputStream.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    public static boolean isValid(String url) {
+        /* Try creating a valid URL */
+        try {
+            new URL(url).toURI();
+            return true;
+        }
+
+        // If there was an Exception
+        // while creating URL object
+        catch (Exception e) {
+            return false;
+        }
+
+    }
+    private static String name = "search.html";
+    private static String Text = "C://Users//lenovo//IdeaProjects//webCrawls//src//pack/out.txt";
+
+    public static String readtxt(String filename) throws IOException{
+
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        String s;
+        StringBuilder sb = new StringBuilder();
+
+        while((s = reader.readLine()) != null) {
+            sb.append(s + "\n");
+        }
+
+        reader.close();
+        return sb.toString();
+    }
+
+    public static Object writer(String fileName,String text){
+        Text = text;
+        try {
+            PrintWriter out = new PrintWriter(new File(fileName));
+            try {
+                out.println(Text);
+            } finally {
+                out.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+}
+
